@@ -258,3 +258,28 @@ public class HiringManagersController : ControllerBase
         return Ok(new { message = "Decision deleted successfully." });
     }
 
+    [HttpGet("{id}/profile")]
+    public async Task<IActionResult> GetProfile(Guid id)
+    {
+        var hm = await _context.HiringManagers
+            .Include(h => h.User)
+            .Include(h => h.Organization)
+            .FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+            
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        return Ok(new
+        {
+            hm.Id,
+            hm.UserId,
+            FirstName = hm.User?.FirstName,
+            LastName = hm.User?.LastName,
+            Email = hm.User?.Email,
+            Phone = hm.PhoneNumber,
+            OrganizationName = hm.Organization?.Name,
+            hm.Department,
+            hm.Designation
+        });
+    }
+
+
