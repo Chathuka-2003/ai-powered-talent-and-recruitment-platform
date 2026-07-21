@@ -186,3 +186,34 @@ public class HiringManagersController : ControllerBase
         return Ok(decisions);
     }
 
+     [HttpPost("{id}/decisions")]
+    public async Task<IActionResult> SubmitDecision(Guid id, [FromBody] SubmitDecisionDto dto)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var app = await _context.JobApplications.FindAsync(dto.ApplicationId);
+        if (app == null) return NotFound(new { message = "Application not found." });
+
+        app.Status = dto.Notes == "Approve" ? "Hired" : (dto.Notes == "Reject" ? "Rejected" : "In Progress");
+
+        var decision = new HiringDecision
+        {
+            Id = Guid.NewGuid(),
+            HiringManagerId = hm.Id,
+            ApplicationId = dto.ApplicationId,
+            AIMatchScore = dto.AIMatchScore,
+            Notes = dto.Notes,
+            DecisionDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.HiringDecisions.Add(decision);
+        
+
+        await _context.SaveChangesAsync();
+        return Ok(decision);
+    }
+
+
