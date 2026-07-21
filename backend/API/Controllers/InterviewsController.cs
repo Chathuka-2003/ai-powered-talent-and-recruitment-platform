@@ -94,3 +94,84 @@ public class InterviewsController : ControllerBase
 
         if (hiringManager == null)
             return Ok(new List<object>()); // Return empty rather than 404 for UX
+
+ // Get interviews linked via InterviewFeedback
+        var interviews = await _context.InterviewFeedbacks
+            .Where(f => f.HiringManagerId == hiringManager.Id)
+            .Include(f => f.Interview)
+                .ThenInclude(i => i.Candidate)
+                .ThenInclude(c => c.User)
+            .Include(f => f.Interview)
+                .ThenInclude(i => i.Application)
+                .ThenInclude(a => a.Job)
+            .OrderBy(f => f.Interview.InterviewDate)
+            .Select(f => new
+            {
+                f.Interview.Id,
+                FeedbackId = f.Id,
+                CandidateName = f.Interview.Candidate.User.FirstName + " " + f.Interview.Candidate.User.LastName,
+                CandidateTitle = f.Interview.Candidate.ProfessionalHeadline ?? "Candidate",
+                Position = f.Interview.Application.Job.Title,
+                Date = f.Interview.InterviewDate.ToString("MMMM dd, yyyy"),
+                Time = f.Interview.InterviewTime.ToString(@"hh\:mm"),
+                Type = f.Interview.Type,
+                Status = f.Interview.Status,
+                VideoLink = !string.IsNullOrEmpty(f.Interview.MeetingLink),
+                MeetingLink = f.Interview.MeetingLink,
+                OverallScore = f.OverallScore,
+                Recommendation = f.Recommendation
+            })
+            .ToListAsync();
+
+        return Ok(interviews);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetInterviewById(Guid id)
+    {
+        var interview = await _context.Interviews
+            .Include(i => i.Candidate).ThenInclude(c => c.User)
+            .Include(i => i.Application).ThenInclude(a => a.Job).ThenInclude(j => j.Organization)
+            .Include(i => i.Recruiter).ThenInclude(r => r.User)
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (interview == null) return NotFound(new { message = "Interview not found." });
+
+        return Ok(new
+        {
+            interview.Id,
+            CandidateName = interview.Candidate?.User?.FirstName + " " + interview.Candidate?.User?.LastName,
+            CandidateEmail = interview.Candidate?.User?.Email,
+            CandidatePhone = interview.Candidate?.PhoneNumber,
+            Position = interview.Application?.Job?.Title,
+            Company = interview.Application?.Job?.Organization?.Name,
+            Type = interview.Type,
+            Date = interview.InterviewDate.ToString("MMMM dd, yyyy"),
+            Time = interview.InterviewTime.ToString(@"hh\:mm"),
+            Location = interview.Location ?? "Virtual",
+            RecruiterName = interview.Recruiter?.User?.FirstName + " " + interview.Recruiter?.User?.LastName,
+            MeetingLink = interview.MeetingLink,
+            Status = interview.Status
+        });
+    }
+
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllInterviews()
+    {
+        var interviews = await _context.Interviews
+            .Include(i => i.Candidate).ThenInclude(c => c.User)
+            .Include(i => i.Application).ThenInclude(a => a.Job).ThenInclude(j => j.Organization)
+            .OrderByDescending(i => i.InterviewDate)
+            .Select(i => new
+            {
+                i.Id,
+                CandidateName = i.Candidate.User.FirstName + " " + i.Candidate.User.LastName,
+                Position = i.Application.Job.Title,
+                Company = i.Application.Job.Organization != null ? i.Application.Job.Organization.Name : "Company",
+                Date = i.InterviewDate.ToString("MMMM dd, yyyy"),
+                Status = i.Status
+            })
+            .ToListAsync();
+
+        return Ok(interviews);
+    }
