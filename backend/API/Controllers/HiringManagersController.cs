@@ -282,4 +282,28 @@ public class HiringManagersController : ControllerBase
         });
     }
 
+[HttpPut("{id}/profile")]
+    public async Task<IActionResult> UpdateProfile(Guid id, [FromBody] UpdateHmProfileDto dto)
+    {
+        var hm = await _context.HiringManagers
+            .Include(h => h.User)
+            .FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+            
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        if (hm.User != null)
+        {
+            hm.User.FirstName = dto.FirstName ?? hm.User.FirstName;
+            hm.User.LastName = dto.LastName ?? hm.User.LastName;
+            hm.User.Email = dto.Email ?? hm.User.Email;
+        }
+
+        hm.PhoneNumber = dto.Phone ?? hm.PhoneNumber;
+        hm.Department = dto.Department ?? hm.Department;
+        hm.Designation = dto.Designation ?? hm.Designation;
+        hm.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return Ok(hm);
+    }
 
