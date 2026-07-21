@@ -1,17 +1,14 @@
-using API.Helpers;
-using Domain.Entities;
-using Infrastructure.Persistence;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
-
-namespace API.Controllers;
+// ==============================================
+// UsersController
+// Handles user profile, contacts, account settings,
+// password management, role updates and user status.
+// ==============================================
 
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
+    // Database context
     private readonly RecruitmentDbContext _context;
 
     public UsersController(RecruitmentDbContext context)
@@ -19,31 +16,46 @@ public class UsersController : ControllerBase
         _context = context;
     }
 
+    // ----------------------------------------------------
+    // GET: api/users/contacts/{userId}
+    // Returns the list of users that the current user
+    // is allowed to communicate with.
+    // ----------------------------------------------------
     [HttpGet("contacts/{userId}")]
     public async Task<IActionResult> GetContacts(Guid userId)
     {
+        // Find current user
         var currentUser = await _context.Users.FindAsync(userId);
-        if (currentUser == null) return NotFound(new { message = "User not found" });
 
+        if (currentUser == null)
+            return NotFound(new { message = "User not found" });
+
+        // Determine which roles are visible based on
+        // the current user's role.
         var targetRoles = new List<Domain.Enums.UserRole>();
+
         if (currentUser.Role == Domain.Enums.UserRole.Candidate)
         {
             targetRoles.Add(Domain.Enums.UserRole.Recruiter);
             targetRoles.Add(Domain.Enums.UserRole.HiringManager);
         }
-        else if (currentUser.Role == Domain.Enums.UserRole.Recruiter || currentUser.Role == Domain.Enums.UserRole.HiringManager)
-        {
-            targetRoles.Add(Domain.Enums.UserRole.Candidate);
-            targetRoles.Add(Domain.Enums.UserRole.Recruiter); // Let recruiters talk to each other too
-            targetRoles.Add(Domain.Enums.UserRole.HiringManager);
-        }
-        else
+        else if (currentUser.Role == Domain.Enums.UserRole.Recruiter ||
+                 currentUser.Role == Domain.Enums.UserRole.HiringManager)
         {
             targetRoles.Add(Domain.Enums.UserRole.Candidate);
             targetRoles.Add(Domain.Enums.UserRole.Recruiter);
             targetRoles.Add(Domain.Enums.UserRole.HiringManager);
         }
+        else
+        {
+            // Admin or other roles can view everyone
+            targetRoles.Add(Domain.Enums.UserRole.Candidate);
+            targetRoles.Add(Domain.Enums.UserRole.Recruiter);
+            targetRoles.Add(Domain.Enums.UserRole.HiringManager);
+        }
 
+        // Retrieve matching users while excluding
+        // the current logged-in user.
         var contacts = await _context.Users
             .Where(u => targetRoles.Contains(u.Role) && u.Id != userId)
             .Select(u => new
@@ -58,21 +70,32 @@ public class UsersController : ControllerBase
         return Ok(contacts);
     }
 
+    // ----------------------------------------------------
+    // PUT: api/users/{id}/settings
+    // Updates the user's profile information.
+    // ----------------------------------------------------
     [HttpPut("{id}/settings")]
     public async Task<IActionResult> UpdateSettings(Guid id, [FromBody] UpdateSettingsDto request)
     {
         var user = await _context.Users.FindAsync(id);
+
         if (user == null)
             return NotFound(new { message = "User not found" });
 
-        // Optional: Check if the new email is already taken by another user
+        // Prevent duplicate email addresses.
         if (user.Email != request.Email)
         {
-            var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email && u.Id != id);
+            var emailExists = await _context.Users
+                .AnyAsync(u => u.Email == request.Email && u.Id != id);
+
             if (emailExists)
-                return BadRequest(new { message = "Email is already in use by another account" });
+                return BadRequest(new
+                {
+                    message = "Email is already in use by another account"
+                });
         }
 
+        // Update profile information.
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
         user.Email = request.Email;
@@ -93,23 +116,41 @@ public class UsersController : ControllerBase
         });
     }
 
+    // ----------------------------------------------------
+    // PUT: api/users/{id}/password
+    // Changes the user's password after verifying
+    // the current password.
+    // ----------------------------------------------------
     [HttpPut("{id}/password")]
     public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordDto request)
     {
         var user = await _context.Users.FindAsync(id);
+
         if (user == null)
             return NotFound(new { message = "User not found" });
 
+        // Verify existing password.
         if (!PasswordHasher.VerifyPassword(request.OldPassword, user.PasswordHash))
-            return BadRequest(new { message = "Incorrect current password" });
+            return BadRequest(new
+            {
+                message = "Incorrect current password"
+            });
 
+        // Store the new hashed password.
         user.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Password updated successfully" });
+        return Ok(new
+        {
+            message = "Password updated successfully"
+        });
     }
 
+    // ----------------------------------------------------
+    // GET: api/users/{id}
+    // Returns a single user's profile information.
+    // ----------------------------------------------------
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUserById(Guid id)
     {
@@ -117,7 +158,8 @@ public class UsersController : ControllerBase
             .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.Id == id);
 
-        if (user == null) return NotFound(new { message = "User not found" });
+        if (user == null)
+            return NotFound(new { message = "User not found" });
 
         return Ok(new
         {
@@ -128,10 +170,16 @@ public class UsersController : ControllerBase
             user.Role,
             user.IsActive,
             user.CreatedAt,
-            Organization = user.Organization == null ? null : new { user.Organization.Name }
+            Organization = user.Organization == null
+                ? null
+                : new { user.Organization.Name }
         });
     }
 
+    // ----------------------------------------------------
+    // GET: api/users
+    // Returns all registered users.
+    // ----------------------------------------------------
     [HttpGet]
     public async Task<IActionResult> GetAllUsers()
     {
@@ -146,66 +194,79 @@ public class UsersController : ControllerBase
                 u.IsActive,
                 u.CreatedAt,
                 OrganizationId = u.OrganizationId,
-                Organization = u.Organization == null ? null : new { u.Organization.Name }
+                Organization = u.Organization == null
+                    ? null
+                    : new { u.Organization.Name }
             })
             .ToListAsync();
 
         return Ok(users);
     }
 
+    // ----------------------------------------------------
+    // PUT: api/users/{id}/role
+    // Updates the user's role.
+    // ----------------------------------------------------
     [HttpPut("{id}/role")]
     public async Task<IActionResult> UpdateRole(Guid id, [FromBody] Domain.Enums.UserRole role)
     {
         var user = await _context.Users.FindAsync(id);
-        if (user == null) return NotFound(new { message = "User not found" });
+
+        if (user == null)
+            return NotFound(new { message = "User not found" });
 
         user.Role = role;
+
         await _context.SaveChangesAsync();
-        return Ok(new { message = "User role updated successfully" });
+
+        return Ok(new
+        {
+            message = "User role updated successfully"
+        });
     }
 
+    // ----------------------------------------------------
+    // PUT: api/users/{id}/status
+    // Activates or deactivates a user account.
+    // ----------------------------------------------------
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] bool isActive)
     {
         var user = await _context.Users.FindAsync(id);
-        if (user == null) return NotFound(new { message = "User not found" });
+
+        if (user == null)
+            return NotFound(new { message = "User not found" });
 
         user.IsActive = isActive;
+
         await _context.SaveChangesAsync();
-        return Ok(new { message = "User status updated successfully" });
+
+        return Ok(new
+        {
+            message = "User status updated successfully"
+        });
     }
 
+    // ----------------------------------------------------
+    // DELETE: api/users/{id}
+    // Soft deletes a user by marking them inactive.
+    // ----------------------------------------------------
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
-        if (user == null) return NotFound(new { message = "User not found" });
 
-        user.IsActive = false; // Soft delete
+        if (user == null)
+            return NotFound(new { message = "User not found" });
+
+        // Soft delete
+        user.IsActive = false;
+
         await _context.SaveChangesAsync();
-        return Ok(new { message = "User deactivated successfully" });
+
+        return Ok(new
+        {
+            message = "User deactivated successfully"
+        });
     }
-}
-
-public class UpdateSettingsDto
-{
-    [Required]
-    public string FirstName { get; set; } = string.Empty;
-
-    [Required]
-    public string LastName { get; set; } = string.Empty;
-
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-}
-
-public class ChangePasswordDto
-{
-    [Required]
-    public string OldPassword { get; set; } = string.Empty;
-
-    [Required]
-    [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
-    public string NewPassword { get; set; } = string.Empty;
 }

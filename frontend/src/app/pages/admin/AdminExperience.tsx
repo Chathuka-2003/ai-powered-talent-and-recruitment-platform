@@ -36,6 +36,7 @@ const Action = ({ children, to, variant = "outline" }: { children: ReactNode; to
 
 export function AdminDashboard() {
     const [stats, setStats] = useState<any>(null);
+// Load dashboard statistics when the component is first rendered.
 
     useEffect(() => {
         api.admin.getDashboardStats().then(setStats).catch(console.error);
