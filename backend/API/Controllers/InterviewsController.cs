@@ -95,7 +95,7 @@ public class InterviewsController : ControllerBase
         if (hiringManager == null)
             return Ok(new List<object>()); // Return empty rather than 404 for UX
 
- // Get interviews linked via InterviewFeedback
+        // Get interviews linked via InterviewFeedback
         var interviews = await _context.InterviewFeedbacks
             .Where(f => f.HiringManagerId == hiringManager.Id)
             .Include(f => f.Interview)
@@ -176,7 +176,7 @@ public class InterviewsController : ControllerBase
         return Ok(interviews);
     }
 
-[HttpPost]
+    [HttpPost]
     public async Task<IActionResult> CreateInterview([FromBody] CreateInterviewRequest req)
     {
         var application = await _context.JobApplications
@@ -227,7 +227,7 @@ public class InterviewsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
- // If a hiring manager is specified, create an InterviewFeedback stub
+        // If a hiring manager is specified, create an InterviewFeedback stub
         if (req.HiringManagerId.HasValue)
         {
             var feedback = new InterviewFeedback
