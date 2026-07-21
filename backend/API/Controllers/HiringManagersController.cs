@@ -330,4 +330,30 @@ public class HiringManagersController : ControllerBase
         return Ok(jobs);
     }
 
+[HttpGet("{id}/candidates")]
+    public async Task<IActionResult> GetCandidates(Guid id)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var apps = await _context.JobApplications
+            .Include(a => a.Candidate)
+            .ThenInclude(c => c.User)
+            .Include(a => a.Job)
+            .Where(a => a.Job.OrganizationId == hm.OrganizationId)
+            .Select(a => new
+            {
+                a.Id,
+                a.JobId,
+                a.CandidateId,
+                CandidateName = a.Candidate.User != null ? a.Candidate.User.FirstName + " " + a.Candidate.User.LastName : "Unknown",
+                Position = a.Job.Title,
+                a.Status,
+                a.AIMatchScore,
+                InterviewStatus = _context.Interviews.Any(i => i.ApplicationId == a.Id) ? "Scheduled" : "Pending"
+            })
+            .ToListAsync();
+
+        return Ok(apps);
+    }
 
