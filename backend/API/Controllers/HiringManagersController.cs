@@ -418,3 +418,25 @@ public class HiringManagersController : ControllerBase
         });
     }
 
+    [HttpGet("{id}/team")]
+    public async Task<IActionResult> GetTeam(Guid id)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var recruiters = await _context.Recruiters
+            .Include(r => r.User)
+            .Where(r => r.OrganizationId == hm.OrganizationId)
+            .Select(r => new
+            {
+                Name = r.User != null ? r.User.FirstName + " " + r.User.LastName : "Unknown",
+                Designation = r.JobTitle,
+                r.Department,
+                PerformanceScore = 90
+            })
+            .ToListAsync();
+
+        return Ok(recruiters);
+    }
+}
+
