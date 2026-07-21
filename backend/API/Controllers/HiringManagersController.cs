@@ -477,3 +477,12 @@ public class SubmitFeedbackDto
     public string? Recommendation { get; set; }
 }
 
+public class SubmitDecisionDto
+{
+    [Required]
+    public Guid ApplicationId { get; set; }
+    public decimal? AIMatchScore { get; set; }
+    public string? Notes { get; set; }
+}
+
+
