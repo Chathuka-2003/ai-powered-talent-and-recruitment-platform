@@ -150,3 +150,39 @@ public class HiringManagersController : ControllerBase
         };
 
         _context.InterviewFeedbacks.Add(feedback);
+
+        // Optionally update interview status based on recommendation?
+        // interview.Status = "Completed";
+
+        await _context.SaveChangesAsync();
+        return Ok(feedback);
+    }
+
+    [HttpGet("{id}/decisions")]
+    public async Task<IActionResult> GetDecisions(Guid id)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var decisions = await _context.HiringDecisions
+            .Include(d => d.Application)
+            .ThenInclude(a => a.Candidate)
+            .ThenInclude(c => c.User)
+            .Include(d => d.Application.Job)
+            .Where(d => d.HiringManagerId == hm.Id)
+            .Select(d => new
+            {
+                d.Id,
+                d.ApplicationId,
+                CandidateName = d.Application.Candidate.User != null ? d.Application.Candidate.User.FirstName + " " + d.Application.Candidate.User.LastName : "Unknown",
+                Position = d.Application.Job.Title,
+                d.AIMatchScore,
+                d.Notes,
+                d.DecisionDate,
+                d.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(decisions);
+    }
+
