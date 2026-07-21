@@ -23,7 +23,7 @@ public class HiringManagersController : ControllerBase
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
         if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
 
-         // Get shortlisted applications for Jobs in this HM's organization
+        // Get shortlisted applications for Jobs in this HM's organization
         var applications = await _context.JobApplications
             .Include(a => a.Candidate)
             .Include(a => a.Job)
@@ -44,7 +44,7 @@ public class HiringManagersController : ControllerBase
         return Ok(applications);
     }
 
-     [HttpGet("{id}/evaluations")]
+    [HttpGet("{id}/evaluations")]
     public async Task<IActionResult> GetEvaluations(Guid id)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -70,7 +70,7 @@ public class HiringManagersController : ControllerBase
         return Ok(evaluations);
     }
 
-      [HttpPost("{id}/evaluations")]
+    [HttpPost("{id}/evaluations")]
     public async Task<IActionResult> SubmitEvaluation(Guid id, [FromBody] SubmitEvaluationDto dto)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -98,7 +98,7 @@ public class HiringManagersController : ControllerBase
         return Ok(evaluation);
     }
 
-     [HttpGet("{id}/feedback")]
+    [HttpGet("{id}/feedback")]
     public async Task<IActionResult> GetFeedback(Guid id)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -150,7 +150,7 @@ public class HiringManagersController : ControllerBase
         };
 
         _context.InterviewFeedbacks.Add(feedback);
-
+        
         // Optionally update interview status based on recommendation?
         // interview.Status = "Completed";
 
@@ -186,7 +186,7 @@ public class HiringManagersController : ControllerBase
         return Ok(decisions);
     }
 
-     [HttpPost("{id}/decisions")]
+    [HttpPost("{id}/decisions")]
     public async Task<IActionResult> SubmitDecision(Guid id, [FromBody] SubmitDecisionDto dto)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -216,7 +216,7 @@ public class HiringManagersController : ControllerBase
         return Ok(decision);
     }
 
- [HttpPut("{id}/decisions/{decisionId}")]
+    [HttpPut("{id}/decisions/{decisionId}")]
     public async Task<IActionResult> UpdateDecision(Guid id, Guid decisionId, [FromBody] UpdateDecisionDto dto)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -237,7 +237,7 @@ public class HiringManagersController : ControllerBase
         return Ok(decision);
     }
 
-[HttpDelete("{id}/decisions/{decisionId}")]
+    [HttpDelete("{id}/decisions/{decisionId}")]
     public async Task<IActionResult> DeleteDecision(Guid id, Guid decisionId)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -282,7 +282,7 @@ public class HiringManagersController : ControllerBase
         });
     }
 
-[HttpPut("{id}/profile")]
+    [HttpPut("{id}/profile")]
     public async Task<IActionResult> UpdateProfile(Guid id, [FromBody] UpdateHmProfileDto dto)
     {
         var hm = await _context.HiringManagers
@@ -330,7 +330,7 @@ public class HiringManagersController : ControllerBase
         return Ok(jobs);
     }
 
-[HttpGet("{id}/candidates")]
+    [HttpGet("{id}/candidates")]
     public async Task<IActionResult> GetCandidates(Guid id)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -357,7 +357,7 @@ public class HiringManagersController : ControllerBase
         return Ok(apps);
     }
 
-     [HttpGet("{id}/interviews")]
+    [HttpGet("{id}/interviews")]
     public async Task<IActionResult> GetInterviews(Guid id)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -384,7 +384,7 @@ public class HiringManagersController : ControllerBase
             
         return Ok(interviews);
     }
-     [HttpGet("{id}/reports")]
+    [HttpGet("{id}/reports")]
     public async Task<IActionResult> GetReports(Guid id)
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
@@ -489,4 +489,5 @@ public class UpdateDecisionDto
 {
     public string? Notes { get; set; }
 }
+
 
