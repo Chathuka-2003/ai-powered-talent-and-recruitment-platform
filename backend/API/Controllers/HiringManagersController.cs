@@ -485,4 +485,8 @@ public class SubmitDecisionDto
     public string? Notes { get; set; }
 }
 
+public class UpdateDecisionDto
+{
+    public string? Notes { get; set; }
+}
 
