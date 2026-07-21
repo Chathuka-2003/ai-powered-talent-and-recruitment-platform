@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { ModuleLayout } from "../../components/ModuleLayout";
 import { GlassCard } from "../../components/GlassCard";
 import { Button } from "../../components/ui/button";
@@ -7,13 +8,15 @@ import {
   MessageCircle,
   Mail,
   Bell,
-  Search,
   Send,
-  Plus,
+  Phone,
+  Video,
+  Paperclip,
+  Smile,
   Circle,
+  Check,
 } from "lucide-react";
 
-// Navigation tabs used inside the communications module
 const messagesTabs = [
   { label: "Chat", path: "/messages/chat-list", icon: MessageSquare },
   { label: "Direct Message", path: "/messages/direct-chat", icon: MessageCircle },
@@ -21,272 +24,232 @@ const messagesTabs = [
   { label: "Notifications", path: "/messages/notifications", icon: Bell },
 ];
 
-// Sample conversation data displayed in the conversation list
-const conversations = [
+const contacts = [
   {
     id: 1,
     name: "Marcus Johnson",
-    lastMessage: "Thank you! I'll be there at 10 AM sharp.",
-    time: "2m ago",
+    role: "Senior Frontend Engineer",
+    company: "Candidate",
+    online: true,
+    lastSeen: "Online",
     unread: 2,
-    tag: "Candidate",
   },
   {
     id: 2,
     name: "Sarah Chen",
-    lastMessage: "The technical assessment scores are in.",
-    time: "14m ago",
+    role: "Technical Lead",
+    company: "TalentAI (Interviewer)",
+    online: true,
+    lastSeen: "Online",
     unread: 0,
-    tag: "Recruiter",
   },
   {
     id: 3,
     name: "Priya Sharma",
-    lastMessage: "Could we reschedule to Thursday afternoon?",
-    time: "1h ago",
+    role: "Product Manager",
+    company: "Candidate",
+    online: false,
+    lastSeen: "2h ago",
     unread: 1,
-    tag: "Candidate",
   },
   {
     id: 4,
     name: "David Park",
-    lastMessage: "Panel interview feedback uploaded.",
-    time: "2h ago",
+    role: "Engineering Manager",
+    company: "TalentAI (Hiring)",
+    online: true,
+    lastSeen: "Online",
     unread: 0,
-    tag: "Recruiter",
   },
   {
     id: 5,
     name: "Carlos Rivera",
-    lastMessage: "Excited about the opportunity! When do we hear back?",
-    time: "3h ago",
-    unread: 3,
-    tag: "Candidate",
-  },
-  {
-    id: 6,
-    name: "Rachel Adams",
-    lastMessage: "HR notes for Aisha Patel attached.",
-    time: "5h ago",
+    role: "DevOps Lead",
+    company: "Candidate",
+    online: false,
+    lastSeen: "30m ago",
     unread: 0,
-    tag: "Recruiter",
-  },
-  {
-    id: 7,
-    name: "Emma Thompson",
-    lastMessage: "Portfolio link updated — please review.",
-    time: "Yesterday",
-    unread: 1,
-    tag: "Candidate",
-  },
-  {
-    id: 8,
-    name: "Tom Wilson",
-    lastMessage: "DevOps round scheduled for the 20th.",
-    time: "Yesterday",
-    unread: 0,
-    tag: "Recruiter",
   },
 ];
 
-// Sample messages displayed inside the selected conversation
-const chatMessages = [
-  { id: 1, from: "Marcus Johnson", text: "Hi! I received the interview confirmation email. Thank you so much.", time: "9:45 AM", mine: false },
-  { id: 2, from: "You", text: "Great, Marcus! We're looking forward to meeting you. The interview will be via our video platform.", time: "9:47 AM", mine: true },
-  { id: 3, from: "Marcus Johnson", text: "Perfect. Should I prepare any specific materials or a portfolio to share?", time: "9:50 AM", mine: false },
-  { id: 4, from: "You", text: "Yes, please bring code samples or a live project you're proud of. We'll do a live code review session.", time: "9:52 AM", mine: true },
-  { id: 5, from: "Marcus Johnson", text: "Understood. I have a React dashboard I built recently — that should work well.", time: "9:55 AM", mine: false },
-  { id: 6, from: "You", text: "That sounds perfect. Thank you! I'll be there at 10 AM sharp.", time: "10:01 AM", mine: true },
+const threadMessages = [
+  { id: 1, mine: false, text: "Hi! Just wanted to confirm I received the video link for tomorrow's interview.", time: "Jun 16 · 4:15 PM", read: true },
+  { id: 2, mine: true, text: "Hi Marcus! Yes, you'll receive a reminder email 15 minutes before. The session starts at 10 AM PST.", time: "Jun 16 · 4:18 PM", read: true },
+  { id: 3, mine: false, text: "Perfect. Will there be any coding exercises during the technical session?", time: "Jun 16 · 4:20 PM", read: true },
+  { id: 4, mine: true, text: "Yes — we'll do a live code review and one small problem-solving exercise. It's collaborative, not a quiz.", time: "Jun 16 · 4:23 PM", read: true },
+  { id: 5, mine: false, text: "That sounds great. I prefer that format. I'll bring my React dashboard project to walk through.", time: "Jun 16 · 4:25 PM", read: true },
+  { id: 6, mine: true, text: "Excellent choice! Sarah Chen will be leading the technical portion. She's very collaborative.", time: "Jun 16 · 4:27 PM", read: true },
+  { id: 7, mine: false, text: "Looking forward to it. Quick question — should I use screen share from my end or will you host it?", time: "Jun 17 · 9:10 AM", read: true },
+  { id: 8, mine: true, text: "You can share your screen — our video room supports that natively. Just click the Monitor icon in the toolbar.", time: "Jun 17 · 9:12 AM", read: true },
+  { id: 9, mine: false, text: "Got it. Thank you! I'll be there at 10 AM sharp.", time: "Jun 17 · 9:15 AM", read: true },
+  { id: 10, mine: true, text: "We're looking forward to it, Marcus. Good luck!", time: "Jun 17 · 9:17 AM", read: true },
 ];
 
-// Communication statistics displayed at the top of the page
-const stats = [
-  { label: "Total Conversations", value: "234", color: "text-[#D4AF37]" },
-  { label: "Unread", value: "12", color: "text-blue-400" },
-  { label: "Response Rate", value: "94%", color: "text-green-400" },
-  { label: "Avg Response Time", value: "2.3h", color: "text-purple-400" },
-];
-
-export function ChatList() {
-  // Store the currently selected conversation
-  const [selectedConv, setSelectedConv] = useState(conversations[0]);
-
-  // Store the conversation search input
-  const [search, setSearch] = useState("");
-
-  // Store the currently selected conversation filter
-  const [filter, setFilter] = useState("All");
-
-  // Store the message currently entered by the user
+export function DirectChat() {
+  const navigate = useNavigate();
+  const [selectedContact, setSelectedContact] = useState(contacts[0]);
   const [message, setMessage] = useState("");
-
-  // Available options for filtering conversations
-  const filters = ["All", "Unread", "Candidates", "Recruiters"];
-
-  // Filter conversations based on the search text and selected category
-  const filteredConvs = conversations.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
-
-    const matchFilter =
-      filter === "All" ||
-      (filter === "Unread" && c.unread > 0) ||
-      (filter === "Candidates" && c.tag === "Candidate") ||
-      (filter === "Recruiters" && c.tag === "Recruiter");
-
-    return matchSearch && matchFilter;
-  });
+  const [isTyping] = useState(true);
 
   return (
     <ModuleLayout
-      title="Communications"
-      subtitle="All your messages and communications in one place"
-      icon={MessageSquare}
+      title="Direct Messages"
+      subtitle="Private one-on-one messaging"
+      icon={MessageCircle}
       tabs={messagesTabs}
       backPath="/recruiter/dashboard"
       backLabel="Back to Portal"
     >
-      {/* Display communication statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {stats.map((s) => (
-          <GlassCard key={s.label} className="p-4 text-center">
-            <div className={`text-3xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-muted-foreground text-xs mt-1">{s.label}</div>
-          </GlassCard>
-        ))}
-      </div>
-
-      {/* Button used to start a new conversation */}
-      <div className="flex justify-end mb-4">
-        <Button className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 gap-2">
-          <Plus className="h-4 w-4" />
-          New Message
-        </Button>
-      </div>
-
-      {/* Main two-panel communications layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ height: "600px" }}>
-        {/* Left panel containing search, filters, and conversations */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ height: "640px" }}>
+        {/* Left: contact list */}
         <GlassCard className="flex flex-col overflow-hidden">
-          {/* Conversation search and filter controls */}
-          <div className="p-3 border-b border-border">
-            {/* Search input for finding conversations by name */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-background border border-[#D4AF37]/15 rounded-lg pl-9 pr-3 py-2 text-foreground text-sm placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]/40"
-              />
-            </div>
-
-            {/* Conversation category filters */}
-            <div className="flex gap-1 flex-wrap">
-              {filters.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                    filter === f
-                      ? "bg-[#D4AF37] text-black"
-                      : "text-muted-foreground hover:text-gray-300"
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="text-foreground font-semibold text-sm">Direct Messages</h3>
+            <p className="text-muted-foreground text-xs mt-0.5">Private conversations</p>
           </div>
-
-          {/* Display conversations matching the selected filters */}
           <div className="flex-1 overflow-y-auto">
-            {filteredConvs.map((conv) => (
+            {contacts.map((contact) => (
               <button
-                key={conv.id}
-                onClick={() => setSelectedConv(conv)}
+                key={contact.id}
+                onClick={() => setSelectedContact(contact)}
                 className={`w-full flex items-start gap-3 px-4 py-3 border-b border-[#D4AF37]/5 text-left transition-colors ${
-                  selectedConv.id === conv.id
+                  selectedContact.id === contact.id
                     ? "bg-[#D4AF37]/10 border-l-2 border-l-[#D4AF37]"
                     : "hover:bg-secondary/50"
                 }`}
               >
-                {/* Display the conversation user's initials */}
-                <div className="w-9 h-9 rounded-full bg-secondary border border-border flex items-center justify-center text-[#D4AF37] text-xs font-bold flex-shrink-0">
-                  {conv.name.split(" ").map((n) => n[0]).join("")}
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-secondary border border-border flex items-center justify-center text-[#D4AF37] text-xs font-bold">
+                    {contact.name.split(" ").map((n) => n[0]).join("")}
+                  </div>
+                  <div
+                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#1E1E1E] ${
+                      contact.online ? "bg-green-400" : "bg-gray-500"
+                    }`}
+                  />
                 </div>
-
-                {/* Display the conversation name and latest message */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
-                    <span className="text-foreground text-sm font-medium truncate">{conv.name}</span>
-
-                    {/* Display the time of the latest message */}
-                    <span className="text-muted-foreground text-[10px] ml-2 flex-shrink-0">{conv.time}</span>
+                    <span className="text-foreground text-sm font-medium truncate">{contact.name}</span>
+                    {contact.unread > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-[#D4AF37] text-black text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+                        {contact.unread}
+                      </span>
+                    )}
                   </div>
-
-                  <div className="text-muted-foreground text-xs truncate mt-0.5">{conv.lastMessage}</div>
+                  <div className="text-muted-foreground text-xs truncate">{contact.role}</div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Circle
+                      className={`h-1.5 w-1.5 fill-current ${
+                        contact.online ? "text-green-400" : "text-muted-foreground"
+                      }`}
+                    />
+                    <span className={`text-[10px] ${contact.online ? "text-green-400" : "text-muted-foreground"}`}>
+                      {contact.lastSeen}
+                    </span>
+                  </div>
                 </div>
-
-                {/* Display the number of unread messages */}
-                {conv.unread > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {conv.unread}
-                  </span>
-                )}
               </button>
             ))}
           </div>
         </GlassCard>
 
-        {/* Right panel containing the selected conversation */}
+        {/* Right: chat thread */}
         <GlassCard className="md:col-span-2 flex flex-col overflow-hidden">
-          {/* Display the selected conversation header */}
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-            {/* Display the selected user's initials */}
-            <div className="w-9 h-9 rounded-full bg-[#D4AF37]/20 border border-border flex items-center justify-center text-[#D4AF37] text-xs font-bold">
-              {selectedConv.name.split(" ").map((n) => n[0]).join("")}
+          {/* Contact header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-border flex items-center justify-center text-[#D4AF37] text-sm font-bold">
+                  {selectedContact.name.split(" ").map((n) => n[0]).join("")}
+                </div>
+                {selectedContact.online && (
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#1E1E1E]" />
+                )}
+              </div>
+              <div>
+                <div className="text-foreground font-semibold">{selectedContact.name}</div>
+                <div className="text-muted-foreground text-xs">{selectedContact.role} · {selectedContact.company}</div>
+              </div>
             </div>
-
-            {/* Display the selected user's name and role */}
-            <div>
-              <div className="text-foreground font-medium">{selectedConv.name}</div>
-              <div className="text-muted-foreground text-xs">{selectedConv.tag}</div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground h-9 w-9 p-0"
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-[#D4AF37] h-9 w-9 p-0"
+                onClick={() => navigate("/interviews/video-room")}
+              >
+                <Video className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          {/* Display all messages in the selected conversation */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {chatMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.mine ? "justify-end" : "justify-start"}`}
-              >
-                {/* Style sent and received messages differently */}
-                <div
-                  className={`max-w-xs lg:max-w-md rounded-2xl px-4 py-2.5 ${
-                    msg.mine
-                      ? "bg-[#D4AF37] text-black rounded-br-sm"
-                      : "bg-secondary text-gray-200 rounded-bl-sm"
-                  }`}
-                >
-                  {/* Message content */}
-                  <p className="text-sm">{msg.text}</p>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            {threadMessages.map((msg, idx) => {
+              const showDate = idx === 0 || threadMessages[idx - 1].time.split(" · ")[0] !== msg.time.split(" · ")[0];
+              return (
+                <div key={msg.id}>
+                  {showDate && (
+                    <div className="text-center text-muted-foreground text-[10px] my-3">
+                      {msg.time.split(" · ")[0]}
+                    </div>
+                  )}
+                  <div className={`flex ${msg.mine ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-sm rounded-2xl px-4 py-2.5 ${
+                        msg.mine
+                          ? "bg-[#D4AF37] text-black rounded-br-sm"
+                          : "bg-secondary text-gray-200 rounded-bl-sm"
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                      <div className={`flex items-center gap-1 mt-1 ${msg.mine ? "justify-end" : ""}`}>
+                        <span className={`text-[10px] ${msg.mine ? "text-black/60" : "text-muted-foreground"}`}>
+                          {msg.time.split(" · ")[1]}
+                        </span>
+                        {msg.mine && (
+                          <div className="flex">
+                            <Check className="h-3 w-3 text-black/60" />
+                            <Check className="h-3 w-3 text-black/60 -ml-1.5" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
 
-                  {/* Time the message was sent */}
-                  <p className={`text-[10px] mt-1 ${msg.mine ? "text-black/60" : "text-muted-foreground"}`}>
-                    {msg.time}
-                  </p>
+            {/* Typing indicator */}
+            {isTyping && selectedContact.id === 1 && (
+              <div className="flex justify-start">
+                <div className="bg-secondary rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+                  <span className="text-muted-foreground text-xs mr-1">Marcus Johnson is typing</span>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
-            ))}
+            )}
           </div>
 
-          {/* Message input area */}
+          {/* Input */}
           <div className="px-5 py-4 border-t border-border">
-            <div className="flex gap-3">
-              {/* Input used to type a new chat message */}
+            <div className="flex items-center gap-2">
+              <button className="text-muted-foreground hover:text-gray-300 transition-colors">
+                <Smile className="h-5 w-5" />
+              </button>
+              <button className="text-muted-foreground hover:text-gray-300 transition-colors">
+                <Paperclip className="h-5 w-5" />
+              </button>
               <input
                 type="text"
                 value={message}
@@ -294,9 +257,7 @@ export function ChatList() {
                 placeholder="Type a message..."
                 className="flex-1 bg-background border border-[#D4AF37]/15 rounded-xl px-4 py-2.5 text-foreground text-sm placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]/40"
               />
-
-              {/* Button used to send the entered message */}
-              <Button className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 h-10 w-10 p-0 rounded-xl">
+              <Button className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 h-10 w-10 p-0 rounded-xl flex-shrink-0">
                 <Send className="h-4 w-4" />
               </Button>
             </div>

@@ -19,7 +19,6 @@ const messagesTabs = [
   { label: "Email Center", path: "/messages/email-center", icon: Mail },
   { label: "Notifications", path: "/messages/notifications", icon: Bell },
 ];
-// Store the currently selected conversation
 
 const conversations = [
   {
@@ -87,7 +86,6 @@ const conversations = [
     tag: "Recruiter",
   },
 ];
-// Maintain the active conversation selected by the recruiter
 
 const chatMessages = [
   { id: 1, from: "Marcus Johnson", text: "Hi! I received the interview confirmation email. Thank you so much.", time: "9:45 AM", mine: false },
@@ -97,7 +95,7 @@ const chatMessages = [
   { id: 5, from: "Marcus Johnson", text: "Understood. I have a React dashboard I built recently — that should work well.", time: "9:55 AM", mine: false },
   { id: 6, from: "You", text: "That sounds perfect. Thank you! I'll be there at 10 AM sharp.", time: "10:01 AM", mine: true },
 ];
-// Holds the current search keyword for filtering conversations
+
 const stats = [
   { label: "Total Conversations", value: "234", color: "text-[#D4AF37]" },
   { label: "Unread", value: "12", color: "text-blue-400" },

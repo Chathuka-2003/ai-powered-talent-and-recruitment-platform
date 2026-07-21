@@ -124,7 +124,6 @@ export function EmailCenter() {
   const [composeBody, setComposeBody] = useState("");
 
   return (
-    // Email folder navigation
     <ModuleLayout
       title="Email Center"
       subtitle="Professional email communications and templates"
@@ -133,7 +132,7 @@ export function EmailCenter() {
       backPath="/recruiter/dashboard"
       backLabel="Back to Portal"
     >
-      {/* Stats */} // Display email statistics
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {stats.map((s) => (
           <GlassCard key={s.label} className="p-4 text-center">
@@ -155,8 +154,6 @@ export function EmailCenter() {
       </div>
 
       {/* Compose form */}
-      // Handle compose form inputs
-// Store the currently selected conversation filter
       {composing && (
         <GlassCard className="p-5 mb-6 border-border">
           <div className="flex justify-between items-center mb-4">
