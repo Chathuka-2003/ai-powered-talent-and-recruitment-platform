@@ -22,3 +22,24 @@ public class HiringManagersController : ControllerBase
     {
         var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
         if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+         // Get shortlisted applications for Jobs in this HM's organization
+        var applications = await _context.JobApplications
+            .Include(a => a.Candidate)
+            .Include(a => a.Job)
+            .Where(a => a.Job.OrganizationId == hm.OrganizationId && (a.Status == "Shortlisted" || a.Status == "Interview Scheduled" || a.Status == "Reviewed"))
+            .Select(a => new
+            {
+                a.Id,
+                a.CandidateId,
+                a.JobId,
+                CandidateName = a.Candidate.User != null ? a.Candidate.User.FirstName + " " + a.Candidate.User.LastName : "Unknown",
+                Position = a.Job.Title,
+                a.Status,
+                a.AIMatchScore,
+                a.RecruiterNotes
+            })
+            .ToListAsync();
+
+        return Ok(applications);
+    }
