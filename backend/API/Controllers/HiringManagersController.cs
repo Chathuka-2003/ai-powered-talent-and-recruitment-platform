@@ -97,3 +97,31 @@ public class HiringManagersController : ControllerBase
 
         return Ok(evaluation);
     }
+
+     [HttpGet("{id}/feedback")]
+    public async Task<IActionResult> GetFeedback(Guid id)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var feedback = await _context.InterviewFeedbacks
+            .Include(f => f.Interview)
+            .ThenInclude(i => i.Candidate)
+            .ThenInclude(c => c.User)
+            .Where(f => f.HiringManagerId == hm.Id)
+            .Select(f => new
+            {
+                f.Id,
+                f.InterviewId,
+                CandidateName = f.Interview.Candidate.User != null ? f.Interview.Candidate.User.FirstName + " " + f.Interview.Candidate.User.LastName : "Unknown",
+                f.TechnicalScore,
+                f.CommunicationScore,
+                f.OverallScore,
+                f.Notes,
+                f.Recommendation,
+                f.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(feedback);
+    }
