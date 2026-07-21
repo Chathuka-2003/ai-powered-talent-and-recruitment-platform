@@ -175,3 +175,54 @@ public class InterviewsController : ControllerBase
 
         return Ok(interviews);
     }
+
+[HttpPost]
+    public async Task<IActionResult> CreateInterview([FromBody] CreateInterviewRequest req)
+    {
+        var application = await _context.JobApplications
+            .Include(a => a.Candidate)
+            .FirstOrDefaultAsync(a => a.Id == req.ApplicationId);
+
+        if (application == null) return NotFound(new { message = "Application not found." });
+
+        var actualRecruiter = await _context.Recruiters.FirstOrDefaultAsync(r => r.UserId == req.RecruiterId);
+        if (actualRecruiter == null) return BadRequest(new { message = "Recruiter profile not found for this user." });
+
+        var interview = new Interview
+        {
+            ApplicationId = req.ApplicationId,
+            CandidateId = application.CandidateId,
+            RecruiterId = actualRecruiter.Id,
+            InterviewDate = req.InterviewDate,
+            InterviewTime = req.InterviewTime,
+            Location = req.Location,
+            MeetingLink = req.MeetingLink,
+            Status = req.Status ?? "Upcoming",
+            Type = req.Type ?? "Technical"
+        };
+
+        // Update application status to reflect that an interview is scheduled
+        application.Status = "Interview Scheduled";
+
+        _context.Interviews.Add(interview);
+
+        // Notify Candidate
+        if (application.Candidate != null)
+        {
+            var jobTitle = "a position";
+            var jobApp = await _context.JobApplications.Include(a => a.Job).FirstOrDefaultAsync(a => a.Id == application.Id);
+            if (jobApp != null && jobApp.Job != null) {
+                jobTitle = jobApp.Job.Title;
+            }
+
+            _context.Notifications.Add(new Notification
+            {
+                UserId = application.Candidate.UserId,
+                Title = "Interview Scheduled",
+                MessageText = $"An interview for {jobTitle} has been scheduled for {interview.InterviewDate:MMM dd} at {interview.InterviewTime:hh\\:mm}.",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync();
