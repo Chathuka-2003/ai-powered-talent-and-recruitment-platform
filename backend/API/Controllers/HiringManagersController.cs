@@ -237,4 +237,24 @@ public class HiringManagersController : ControllerBase
         return Ok(decision);
     }
 
+[HttpDelete("{id}/decisions/{decisionId}")]
+    public async Task<IActionResult> DeleteDecision(Guid id, Guid decisionId)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var decision = await _context.HiringDecisions.Include(d => d.Application).FirstOrDefaultAsync(d => d.Id == decisionId && d.HiringManagerId == hm.Id);
+        if (decision == null) return NotFound(new { message = "Decision not found." });
+
+        if (decision.Application != null)
+        {
+            // Revert application status
+            decision.Application.Status = "Reviewed";
+        }
+
+        _context.HiringDecisions.Remove(decision);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Decision deleted successfully." });
+    }
 
