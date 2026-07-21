@@ -463,4 +463,17 @@ public class SubmitEvaluationDto
     public string? Summary { get; set; }
 }
 
+public class SubmitFeedbackDto
+{
+    [Required]
+    public Guid InterviewId { get; set; }
+    [Required]
+    public decimal TechnicalScore { get; set; }
+    [Required]
+    public decimal CommunicationScore { get; set; }
+    [Required]
+    public decimal OverallScore { get; set; }
+    public string? Notes { get; set; }
+    public string? Recommendation { get; set; }
+}
 
