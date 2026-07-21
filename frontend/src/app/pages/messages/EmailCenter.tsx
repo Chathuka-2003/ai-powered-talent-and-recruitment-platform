@@ -156,7 +156,7 @@ export function EmailCenter() {
 
       {/* Compose form */}
       // Handle compose form inputs
-
+// Store the currently selected conversation filter
       {composing && (
         <GlassCard className="p-5 mb-6 border-border">
           <div className="flex justify-between items-center mb-4">
