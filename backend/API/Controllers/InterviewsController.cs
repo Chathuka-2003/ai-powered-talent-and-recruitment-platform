@@ -226,3 +226,71 @@ public class InterviewsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+
+ // If a hiring manager is specified, create an InterviewFeedback stub
+        if (req.HiringManagerId.HasValue)
+        {
+            var feedback = new InterviewFeedback
+            {
+                InterviewId = interview.Id,
+                HiringManagerId = req.HiringManagerId.Value,
+                OverallScore = 0,
+                TechnicalScore = 0,
+                CommunicationScore = 0
+            };
+            _context.InterviewFeedbacks.Add(feedback);
+            await _context.SaveChangesAsync();
+        }
+
+        // Find recruiter user ID for calendar sync
+        var recruiter = actualRecruiter;
+        List<object>? syncResults = null;
+
+        if (recruiter != null)
+        {
+            try
+            {
+                // Only auto-sync if they have tokens (CalendarSyncService handles it)
+                // Only auto-sync if they have tokens and AutoSync is true
+                syncResults = await _syncService.SyncInterviewAsync(interview.Id, recruiter.UserId, autoSyncOnly: true);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the interview creation
+                Console.WriteLine($"Calendar sync error: {ex.Message}");
+            }
+        }
+
+        return Ok(new { message = "Interview scheduled successfully.", id = interview.Id, syncResults });
+    }
+
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
+    {
+        var interview = await _context.Interviews.FindAsync(id);
+        if (interview == null) return NotFound();
+
+        interview.Status = req.Status;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Status updated." });
+    }
+}
+
+public class CreateInterviewRequest
+{
+    public Guid ApplicationId { get; set; }
+    public Guid RecruiterId { get; set; }
+    public Guid? HiringManagerId { get; set; }
+    public DateTime InterviewDate { get; set; }
+    public TimeSpan InterviewTime { get; set; }
+    public string? Location { get; set; }
+    public string? MeetingLink { get; set; }
+    public string? Status { get; set; }
+    public string? Type { get; set; }
+}
+
+public class UpdateStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+}
