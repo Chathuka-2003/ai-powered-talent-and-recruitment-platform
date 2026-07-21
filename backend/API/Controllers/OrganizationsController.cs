@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
 namespace API.Controllers;
+/// <summary>
+/// Controller responsible for managing organization-related operations,
+/// including organization details, recruiters, and hiring managers.
+/// </summary>
 
 [ApiController]
 [Route("api/[controller]")]
