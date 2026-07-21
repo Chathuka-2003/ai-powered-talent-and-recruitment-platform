@@ -450,4 +450,17 @@ public class UpdateHmProfileDto
     public string? Designation { get; set; }
 }
 
+public class SubmitEvaluationDto
+{
+    [Required]
+    public Guid CandidateId { get; set; }
+    [Required]
+    public decimal TechnicalRating { get; set; }
+    [Required]
+    public decimal CommunicationRating { get; set; }
+    [Required]
+    public decimal OverallRating { get; set; }
+    public string? Summary { get; set; }
+}
+
 
