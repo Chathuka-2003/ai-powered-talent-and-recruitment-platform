@@ -69,3 +69,31 @@ public class HiringManagersController : ControllerBase
 
         return Ok(evaluations);
     }
+
+      [HttpPost("{id}/evaluations")]
+    public async Task<IActionResult> SubmitEvaluation(Guid id, [FromBody] SubmitEvaluationDto dto)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var candidate = await _context.Candidates.FindAsync(dto.CandidateId);
+        if (candidate == null) return NotFound(new { message = "Candidate not found." });
+
+        var evaluation = new Evaluation
+        {
+            Id = Guid.NewGuid(),
+            HiringManagerId = hm.Id,
+            CandidateId = dto.CandidateId,
+            TechnicalRating = dto.TechnicalRating,
+            CommunicationRating = dto.CommunicationRating,
+            OverallRating = dto.OverallRating,
+            Summary = dto.Summary,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Evaluations.Add(evaluation);
+        await _context.SaveChangesAsync();
+
+        return Ok(evaluation);
+    }
