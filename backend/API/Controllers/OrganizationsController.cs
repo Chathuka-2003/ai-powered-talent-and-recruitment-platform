@@ -14,6 +14,9 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class OrganizationsController : ControllerBase
 {
+    /// <summary>
+    /// Database context used to access application data.
+    /// </summary>
     private readonly RecruitmentDbContext _context;
 
     public OrganizationsController(RecruitmentDbContext context)
