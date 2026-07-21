@@ -384,4 +384,37 @@ public class HiringManagersController : ControllerBase
             
         return Ok(interviews);
     }
+     [HttpGet("{id}/reports")]
+    public async Task<IActionResult> GetReports(Guid id)
+    {
+        var hm = await _context.HiringManagers.FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
+        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        var openPositions = await _context.Jobs.CountAsync(j => j.OrganizationId == hm.OrganizationId && j.Status == Domain.Enums.JobStatus.Active);
+        var candidatesReviewed = await _context.JobApplications.CountAsync(a => a.Job.OrganizationId == hm.OrganizationId && a.Status != "Applied");
+        var interviewsConducted = await _context.Interviews.CountAsync(i => i.Application.Job.OrganizationId == hm.OrganizationId);
+        var decisionsMade = await _context.HiringDecisions.CountAsync(d => d.HiringManagerId == hm.Id);
+
+        return Ok(new
+        {
+            openPositions,
+            candidatesReviewed,
+            interviewsConducted,
+            decisionsMade,
+            funnel = new[]
+            {
+                new { name = "Applied", value = await _context.JobApplications.CountAsync(a => a.Job.OrganizationId == hm.OrganizationId) },
+                new { name = "Reviewed", value = candidatesReviewed },
+                new { name = "Interviewed", value = interviewsConducted },
+                new { name = "Approved", value = await _context.HiringDecisions.CountAsync(d => d.HiringManagerId == hm.Id && d.Notes == "Approve") }
+            },
+            sources = new[]
+            {
+                new { name = "Reviewed", value = 45, color = "#D4AF37" },
+                new { name = "Interviewed", value = 30, color = "#E5C158" },
+                new { name = "Approved", value = 15, color = "#777" },
+                new { name = "Rejected", value = 10, color = "#444" }
+            }
+        });
+    }
 
