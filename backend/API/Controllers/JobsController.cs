@@ -5,8 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Domain.Enums;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class JobsController : ControllerBase
@@ -20,6 +23,7 @@ public class JobsController : ControllerBase
         _context = context;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? title,
@@ -93,6 +97,7 @@ public class JobsController : ControllerBase
         return Ok(jobs);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
