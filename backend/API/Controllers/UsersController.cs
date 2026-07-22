@@ -3,7 +3,15 @@
 // Handles user profile, contacts, account settings,
 // password management, role updates and user status.
 // ==============================================
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistence;
+using API.DTOs;
+using API.Helpers;
 
+using Microsoft.AspNetCore.Authorization;
+
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
