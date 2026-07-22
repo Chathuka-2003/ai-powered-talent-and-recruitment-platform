@@ -26,7 +26,7 @@ public class AIController : ControllerBase
         _apiKey = config["Gemini:ApiKey"] ?? "";
     }
 
-    // POST api/ai/analyze-profile
+    // POST api/ai/analyze-profile /
     [HttpPost("analyze-profile")]
     public async Task<IActionResult> AnalyzeProfile([FromBody] AnalyzeProfileRequest req)
     {
