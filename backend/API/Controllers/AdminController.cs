@@ -8,6 +8,7 @@ using System.Linq;
 
 namespace API.Controllers;
 
+[Authorize(Roles = "admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class AdminController : ControllerBase
