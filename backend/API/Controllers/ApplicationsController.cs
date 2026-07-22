@@ -3,8 +3,11 @@ using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ApplicationsController : ControllerBase
@@ -145,13 +148,20 @@ public class ApplicationsController : ControllerBase
     [HttpGet("recruiter/{userId}")]
     public async Task<IActionResult> GetByRecruiterId(Guid userId)
     {
-        var recruiter = await _context.Recruiters.FirstOrDefaultAsync(r => r.UserId == userId);
-        if (recruiter == null) return Ok(new List<object>());
+        var recruiter = await _context.Recruiters.FirstOrDefaultAsync(r => r.UserId == userId || r.Id == userId);
+        Guid? orgId = recruiter?.OrganizationId;
+        Guid? recruiterId = recruiter?.Id;
+
+        if (orgId == null)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            orgId = user?.OrganizationId;
+        }
 
         var applications = await _context.JobApplications
             .Include(a => a.Job)
             .Include(a => a.Candidate).ThenInclude(c => c.User)
-            .Where(a => a.Job.RecruiterId == recruiter.Id)
+            .Where(a => (orgId != null && a.Job.OrganizationId == orgId) || (recruiterId != null && a.Job.RecruiterId == recruiterId))
             .OrderByDescending(a => a.AppliedDate)
             .Select(a => new
             {
@@ -159,7 +169,7 @@ public class ApplicationsController : ControllerBase
                 a.AppliedDate,
                 a.AIMatchScore,
                 a.Status,
-                CandidateName = a.Candidate.User.FirstName + " " + a.Candidate.User.LastName,
+                CandidateName = a.Candidate.User != null ? a.Candidate.User.FirstName + " " + a.Candidate.User.LastName : "Candidate",
                 CandidateId = a.CandidateId,
                 JobTitle = a.Job.Title,
                 JobId = a.Job.Id,
