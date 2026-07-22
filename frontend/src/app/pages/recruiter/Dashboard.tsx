@@ -25,6 +25,7 @@ export function RecruiterDashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,14 +37,16 @@ export function RecruiterDashboard() {
           const profile = await api.recruiters.getProfile(user.id).catch(() => null);
           orgId = profile?.organizationId;
         }
-        const [jobsData, candidatesData, applicationsData] = await Promise.all([
+        const [jobsData, candidatesData, applicationsData, interviewsData] = await Promise.all([
           api.jobs.getAll({ organizationId: orgId }),
           api.candidates.getAll(),
-          user.id ? api.applications.getForRecruiter(user.id).catch(() => []) : Promise.resolve([])
+          user.id ? api.applications.getForRecruiter(user.id).catch(() => []) : Promise.resolve([]),
+          user.id ? api.interviews.getByRecruiter(user.id).catch(() => []) : Promise.resolve([])
         ]);
         setJobs(jobsData || []);
         setCandidates(candidatesData || []);
         setApplications(applicationsData || []);
+        setInterviews(interviewsData || []);
       } catch (err) {
         console.error("Error loading dashboard data", err);
       } finally {
@@ -56,11 +59,28 @@ export function RecruiterDashboard() {
   const activeJobsList = jobs.filter(j => j.status === 1 || j.status === "Active" || !j.status);
   const topCandidatesList = candidates.slice(0, 3);
 
-  // ApplicationStatus: 0=Applied, 1=UnderReview, 2=Shortlisted, 3=InterviewScheduled, 4=OfferReceived, 5=Rejected, 6=Withdrawn
+  // Status check supporting both numeric enum codes and string status names
+  const isScreened = (s: any) => {
+    const str = String(s || "").toLowerCase().trim();
+    return s === 1 || s === 2 || s === 3 || s === 4 ||
+      ["underreview", "under review", "reviewed", "shortlisted", "interview scheduled", "interviewscheduled", "interviewed", "offer received", "offered"].includes(str);
+  };
+
+  const isInterviewed = (s: any) => {
+    const str = String(s || "").toLowerCase().trim();
+    return s === 3 || s === 4 ||
+      ["interview scheduled", "interviewscheduled", "interviewed", "offer received", "offered", "confirmed", "completed", "pending"].includes(str);
+  };
+
+  const isOffered = (s: any) => {
+    const str = String(s || "").toLowerCase().trim();
+    return s === 4 || ["offer received", "offered", "offer", "accepted"].includes(str);
+  };
+
   const appliedCount = applications.length;
-  const screenedCount = applications.filter(a => [1, 2, 3, 4].includes(a.status)).length;
-  const interviewedCount = applications.filter(a => [3, 4].includes(a.status)).length;
-  const offeredCount = applications.filter(a => a.status === 4).length;
+  const screenedCount = Math.max(applications.filter(a => isScreened(a.status)).length, interviews.length);
+  const interviewedCount = Math.max(applications.filter(a => isInterviewed(a.status)).length, interviews.length);
+  const offeredCount = applications.filter(a => isOffered(a.status)).length;
 
   const hiringFunnelData = [
     { name: "Applied", value: appliedCount },
@@ -248,6 +268,87 @@ export function RecruiterDashboard() {
           </div>
         </GlassCard>
       </div>
+
+      {/* Interviewed Candidates Section */}
+      <GlassCard className="p-6 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-[#D4AF37]" />
+              Interviewed Candidates
+            </h2>
+            <p className="text-sm text-muted-foreground">Monitor candidate interview schedules, status, and progress</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/recruiter/interviews/schedule")} className="border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/10">
+            Schedule Interview
+          </Button>
+        </div>
+
+        {interviews.length === 0 ? (
+          <div className="text-center p-8 bg-secondary/30 rounded-xl border border-border/50">
+            <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+            <p className="text-muted-foreground text-sm font-medium">No candidate interviews scheduled or conducted yet.</p>
+            <Button size="sm" className="mt-4 bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90" onClick={() => navigate("/recruiter/interviews/schedule")}>
+              Schedule First Interview
+            </Button>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {interviews.slice(0, 6).map((item) => {
+              const cName = item.candidateName || (item.candidate?.user ? `${item.candidate.user.firstName} ${item.candidate.user.lastName}` : "Candidate");
+              const pos = item.position || item.job?.title || "Position";
+              const dateVal = item.interviewDate || item.date;
+              const timeVal = item.interviewTime || item.time || "";
+
+              return (
+                <div key={item.id || Math.random()} className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-[#D4AF37]/40 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] font-bold">
+                          {cName.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground text-base leading-tight">{cName}</h4>
+                          <p className="text-xs text-[#D4AF37] font-medium">{pos}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={
+                        item.status === "Confirmed" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                        item.status === "Completed" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                        "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                      }>
+                        {item.status || "Scheduled"}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                        <span>{dateVal ? new Date(dateVal).toLocaleDateString() : "Date TBD"}</span>
+                        {timeVal && <span>• {timeVal.substring(0, 5)}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-3.5 w-3.5 text-gray-400" />
+                        <span>Type: {item.type || "Technical"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+                    <Button size="sm" variant="ghost" onClick={() => navigate("/recruiter/interviews/schedule")} className="text-xs text-muted-foreground hover:text-foreground">
+                      Manage Schedule
+                    </Button>
+                    <Button size="sm" onClick={() => navigate("/interviews/video-room")} className="text-xs bg-secondary text-foreground hover:bg-secondary/80 border border-border">
+                      Join Room
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
     </DashboardLayout>
   );
 }
