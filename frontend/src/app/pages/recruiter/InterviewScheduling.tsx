@@ -10,7 +10,10 @@ import { api } from "../../api";
 import { toast } from "sonner";
 import { Input } from "../../components/ui/input";
 
+import { getCurrentRole } from "../../auth";
+
 export function InterviewScheduling() {
+  const currentRole = getCurrentRole() || "recruiter";
   const [interviews, setInterviews] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,14 +36,24 @@ export function InterviewScheduling() {
           const user = JSON.parse(storedUser);
           if (user.id) {
             setUserId(user.id);
-            const [ints, apps] = await Promise.all([
-              api.interviews.getByRecruiter(user.id),
-              api.applications.getForRecruiter(user.id)
-            ]);
-            setInterviews(ints);
-            // Only show apps that are shortlisted or similar if we wanted to filter, 
-            // but for now we'll allow scheduling for any active app
-            setApplications(apps);
+            let ints: any[] = [];
+            let apps: any[] = [];
+
+            if (currentRole === "hiring-manager") {
+              const hmProfile = await api.hiringManager.getProfile(user.id).catch(() => null);
+              const hmId = hmProfile?.id || user.id;
+              [ints, apps] = await Promise.all([
+                api.hiringManager.getInterviews(hmId).catch(() => []),
+                api.hiringManager.getShortlisted(hmId).catch(() => [])
+              ]);
+            } else {
+              [ints, apps] = await Promise.all([
+                api.interviews.getByRecruiter(user.id).catch(() => []),
+                api.applications.getForRecruiter(user.id).catch(() => [])
+              ]);
+            }
+            setInterviews(ints || []);
+            setApplications(apps || []);
           }
         }
       } catch (err) {
@@ -51,7 +64,7 @@ export function InterviewScheduling() {
       }
     };
     fetchData();
-  }, []);
+  }, [currentRole]);
 
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,12 +91,19 @@ export function InterviewScheduling() {
         Status: "Pending"
       };
 
-      const res = await api.interviews.create(payload);
+      await api.interviews.create(payload);
       toast.success("Interview scheduled successfully!");
       
       // Refresh interviews
-      const ints = await api.interviews.getByRecruiter(userId);
-      setInterviews(ints);
+      if (currentRole === "hiring-manager") {
+        const hmProfile = await api.hiringManager.getProfile(userId).catch(() => null);
+        const hmId = hmProfile?.id || userId;
+        const ints = await api.hiringManager.getInterviews(hmId).catch(() => []);
+        setInterviews(ints || []);
+      } else {
+        const ints = await api.interviews.getByRecruiter(userId).catch(() => []);
+        setInterviews(ints || []);
+      }
       
       // Reset form
       setSelectedApp("");
@@ -91,7 +111,7 @@ export function InterviewScheduling() {
       setLocation("");
       setMeetingLink("");
     } catch (err: any) {
-      console.error(err);
+      console.error("Failed to schedule interview", err);
       toast.error(err.message || "Failed to schedule interview.");
     } finally {
       setSubmitting(false);
@@ -109,7 +129,7 @@ export function InterviewScheduling() {
   };
 
   return (
-    <DashboardLayout role="recruiter">
+    <DashboardLayout role={currentRole as any}>
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2 bg-gradient-to-r from-[#D4AF37] to-white bg-clip-text text-transparent">Interview Scheduling</h1>
@@ -138,7 +158,7 @@ export function InterviewScheduling() {
                   <option value="">-- Choose Application --</option>
                   {applications.map(app => (
                     <option key={app.id} value={app.id}>
-                      {app.candidateName} - {app.position}
+                      {app.candidateName || (app.candidate?.user ? `${app.candidate.user.firstName} ${app.candidate.user.lastName}` : "Candidate")} - {app.position || app.job?.title || "Position"}
                     </option>
                   ))}
                 </select>
@@ -238,61 +258,68 @@ export function InterviewScheduling() {
             </GlassCard>
           ) : (
             <div className="space-y-4">
-              {interviews.map((interview) => (
-                <GlassCard key={interview.id} className="p-5 hover:border-[#D4AF37]/30 transition-all duration-300 group">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/5 border border-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] font-bold text-lg shrink-0 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
-                        {interview.candidateName ? interview.candidateName.charAt(0) : "C"}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-foreground mb-0.5 group-hover:text-[#D4AF37] transition-colors">{interview.candidateName || "Candidate"}</h3>
-                        <p className="text-[#D4AF37]/80 text-sm font-medium mb-3">{interview.position || "Position"}</p>
-                        
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                          <div className="flex items-center text-muted-foreground">
-                            <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
-                            {new Date(interview.date).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                            {interview.time.substring(0, 5)}
-                          </div>
-                          {interview.location && (
+              {interviews.map((interview) => {
+                const cName = interview.candidateName || (interview.candidate?.user ? `${interview.candidate.user.firstName} ${interview.candidate.user.lastName}` : "Candidate");
+                const pos = interview.position || interview.job?.title || "Position";
+                const dateVal = interview.interviewDate || interview.date;
+                const timeVal = interview.interviewTime || interview.time || "";
+
+                return (
+                  <GlassCard key={interview.id || Math.random()} className="p-5 hover:border-[#D4AF37]/30 transition-all duration-300 group">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/5 border border-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] font-bold text-lg shrink-0 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+                          {cName ? cName.charAt(0) : "C"}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-foreground mb-0.5 group-hover:text-[#D4AF37] transition-colors">{cName}</h3>
+                          <p className="text-[#D4AF37]/80 text-sm font-medium mb-3">{pos}</p>
+                          
+                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                             <div className="flex items-center text-muted-foreground">
-                              <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                              {interview.location}
+                              <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
+                              {dateVal ? new Date(dateVal).toLocaleDateString() : "TBD"}
                             </div>
-                          )}
-                          {interview.meetingLink && (
-                            <div className="flex items-center text-blue-400 hover:text-blue-300 cursor-pointer">
-                              <LinkIcon className="h-4 w-4 mr-2" />
-                              <span className="underline">Meeting Link</span>
+                            <div className="flex items-center text-muted-foreground">
+                              <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                              {timeVal ? timeVal.substring(0, 5) : "TBD"}
                             </div>
-                          )}
+                            {interview.location && (
+                              <div className="flex items-center text-muted-foreground">
+                                <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                                {interview.location}
+                              </div>
+                            )}
+                            {interview.meetingLink && (
+                              <div className="flex items-center text-blue-400 hover:text-blue-300 cursor-pointer">
+                                <LinkIcon className="h-4 w-4 mr-2" />
+                                <span className="underline">Meeting Link</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-3 sm:w-auto w-full sm:mt-0 mt-2">
+                        <Badge className="bg-secondary/80 text-foreground border border-border flex items-center py-1">
+                          {getIconForType(interview.type)}
+                          {interview.type || "Interview"}
+                        </Badge>
+                        <Badge variant="outline" className={
+                          interview.status === "Confirmed" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                          interview.status === "Completed" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                          "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                        }>
+                          {interview.status || "Scheduled"}
+                        </Badge>
+                        <div className="mt-1">
+                          <AddToCalendarButton interview={interview} compact />
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col items-end gap-3 sm:w-auto w-full sm:mt-0 mt-2">
-                      <Badge className="bg-secondary/80 text-foreground border border-border flex items-center py-1">
-                        {getIconForType(interview.type)}
-                        {interview.type}
-                      </Badge>
-                      <Badge variant="outline" className={
-                        interview.status === "Confirmed" ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                        interview.status === "Completed" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                        "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                      }>
-                        {interview.status}
-                      </Badge>
-                      <div className="mt-1">
-                        <AddToCalendarButton interview={interview} compact />
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
+                  </GlassCard>
+                );
+              })}
             </div>
           )}
         </div>
