@@ -61,15 +61,17 @@ export function HMDashboard() {
   const hmId = getUserId();
   const [reports, setReports] = useState<any>(null);
   const [candidates, setCandidates] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     if (hmId) {
-      api.hiringManager.getReports(hmId).then(setReports).catch(console.error);
-      api.hiringManager.getCandidates(hmId).then(data => setCandidates(data.slice(0, 5))).catch(console.error);
-      api.notifications.getByUser(hmId).then(data => setNotifications(data.slice(0, 5))).catch(console.error);
+      api.hiringManager.getReports(hmId).then(setReports).catch(() => {});
+      api.hiringManager.getCandidates(hmId).then(data => setCandidates((data || []).slice(0, 5))).catch(() => {});
+      api.hiringManager.getInterviews(hmId).then(data => setInterviews(data || [])).catch(() => {});
+      api.notifications.getByUser(hmId).then(data => setNotifications((data || []).slice(0, 5))).catch(() => {});
     }
-  }, []);
+  }, [hmId]);
 
   if (!reports) return <DashboardLayout role="hiring-manager"><Header title="Dashboard" subtitle="Loading..."/></DashboardLayout>;
 
@@ -82,6 +84,70 @@ export function HMDashboard() {
         <button onClick={() => n('/hiring-manager/interviews')}><StatCard title="Interviews Today" value={reports.interviewsConducted} icon={Calendar}/></button>
         <button onClick={() => n('/hiring-manager/decisions')}><StatCard title="Pending Approvals" value={reports.decisionsMade} icon={CheckCircle2}/></button>
       </div>
+
+      {/* Interviewed Candidates Section */}
+      <GlassCard className="p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl text-foreground font-semibold flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-[#D4AF37]" />
+              Interviewed Candidates
+            </h2>
+            <p className="text-sm text-muted-foreground">Track candidate interview status, evaluations, and scheduled rounds</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => n('/hiring-manager/interviews/schedule')} className="border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/10">
+              Schedule Interview
+            </Button>
+            <Button size="sm" onClick={() => n('/hiring-manager/interviews')}>View All</Button>
+          </div>
+        </div>
+
+        {interviews.length === 0 ? (
+          <div className="text-center p-6 bg-secondary/30 rounded-xl border border-border/50">
+            <span className="text-3xl block mb-2 opacity-50">📅</span>
+            <p className="text-muted-foreground text-sm font-medium">No candidate interviews scheduled or evaluated yet.</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {interviews.slice(0, 6).map(i => {
+              const cName = i.candidateName || (i.candidate?.user ? `${i.candidate.user.firstName} ${i.candidate.user.lastName}` : "Candidate");
+              const pos = i.position || i.job?.title || "Position";
+              const dateVal = i.interviewDate || i.date;
+              const timeVal = i.interviewTime || i.time || "";
+
+              return (
+                <div key={i.id || Math.random()} className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-[#D4AF37]/40 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <b className="text-foreground text-base block">{cName}</b>
+                        <span className="text-xs text-[#D4AF37] font-medium">{pos}</span>
+                      </div>
+                      <Badge variant="outline" className={
+                        i.status === "Confirmed" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                        i.status === "Completed" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                        "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                      }>
+                        {i.status || "Scheduled"}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                      <p>📅 {dateVal ? new Date(dateVal).toLocaleDateString() : "Date TBD"} {timeVal ? `• ${timeVal.substring(0, 5)}` : ""}</p>
+                      <p>🎥 Type: {i.type || "Technical Round"}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
+                    <Button size="sm" variant="outline" className="w-1/2 text-xs" onClick={() => n('/hiring-manager/feedback')}>Feedback</Button>
+                    <Button size="sm" className="w-1/2 text-xs bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90" onClick={() => n('/interviews/video-room')}>Join Room</Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
+
       <div className="grid xl:grid-cols-3 gap-6">
         <GlassCard className="xl:col-span-2 p-6">
           <h2 className="text-xl text-foreground font-semibold mb-4">Hiring Pipeline Overview</h2>
@@ -660,7 +726,7 @@ export function Interviews() {
       <Header title="Interviews" subtitle="View details of online or onsite interviews." />
       <Toolbar>
           <div className="flex gap-2">
-            <Button onClick={() => navigate("/interviews/schedule")}><Calendar className="mr-2 h-4 w-4"/>Schedule Interview</Button>
+            <Button onClick={() => navigate("/hiring-manager/interviews/schedule")}><Calendar className="mr-2 h-4 w-4"/>Schedule Interview</Button>
             <Button variant="outline" className="text-blue-500 border-blue-500/20 hover:bg-blue-500/10" onClick={() => handleCalendarSync('google')}>
               <CalendarDays className="mr-2 h-4 w-4"/>Google
             </Button>
@@ -683,9 +749,17 @@ export function Interviews() {
               <Td>{i.candidateName}</Td>
               <Td>{i.position}</Td>
               <Td>{new Date(i.interviewDate).toLocaleDateString()}</Td>
-              <Td>{i.interviewTime}</Td>
-              <Td>{i.type}</Td>
-              <Td>{i.status}</Td>
+              <Td>{i.interviewTime ? i.interviewTime.substring(0, 5) : "TBD"}</Td>
+              <Td>{i.type || "Technical"}</Td>
+              <Td>
+                <Badge variant="outline" className={
+                  i.status === "Confirmed" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                  i.status === "Completed" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                  "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                }>
+                  {i.status || "Pending"}
+                </Badge>
+              </Td>
               <Td>
                 <div className="flex flex-wrap gap-2">
                   <Button 
@@ -834,7 +908,7 @@ export function HMCalendar() {
           <Button variant="outline" className="text-[#00a4ef] border-[#00a4ef]/20 hover:bg-[#00a4ef]/10" onClick={() => handleCalendarSync('microsoft')}>
             <CalendarDays className="mr-2 h-4 w-4"/>Microsoft
           </Button>
-          <Button onClick={() => navigate("/interviews/schedule")}><Plus className="mr-2 h-4 w-4"/>Add Event</Button>
+          <Button onClick={() => navigate("/hiring-manager/interviews/schedule")}><Plus className="mr-2 h-4 w-4"/>Add Event</Button>
         </div>
       </Toolbar>
       <div className="grid md:grid-cols-3 gap-4">
