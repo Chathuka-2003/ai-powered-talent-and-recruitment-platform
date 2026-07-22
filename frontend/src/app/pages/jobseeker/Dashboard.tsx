@@ -282,11 +282,20 @@ export function JobSeekerDashboard() {
                 >
                   <h3 className="font-semibold text-foreground mb-1">{interview.company}</h3>
                   <p className="text-sm text-muted-foreground mb-2">{interview.position}</p>
-                  <div className="flex items-center justify-between text-sm mb-2">
+                  <div className="flex items-center justify-between text-sm mb-3">
                     <span className="text-muted-foreground">{interview.date}</span>
                     <span className="text-[#D4AF37]">{interview.time}</span>
                   </div>
-                  <Badge variant="outline" className="text-xs">{interview.type}</Badge>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-xs">{interview.type}</Badge>
+                    <Button
+                      size="sm"
+                      className="bg-[#D4AF37] text-black font-semibold hover:bg-[#D4AF37]/90 text-xs h-7"
+                      onClick={() => interview.link ? window.open(interview.link, "_blank") : navigate("/interviews/video-room")}
+                    >
+                      <Video className="mr-1 h-3.5 w-3.5" /> Join Room
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
