@@ -6,8 +6,11 @@ using System.Security.Claims;
 using System.Web;
 using API.Services;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class CalendarController : ControllerBase
