@@ -4,8 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize(Roles = "recruiter,hiring-manager,admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class JobRequisitionsController : ControllerBase
