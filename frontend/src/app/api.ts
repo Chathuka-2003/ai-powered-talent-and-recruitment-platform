@@ -457,6 +457,7 @@ export const api = {
     getCandidates: async (id: string) => request<any[]>(`hiringManagers/${id}/candidates`),
     getInterviews: async (id: string) => request<any[]>(`hiringManagers/${id}/interviews`),
     getShortlisted: async (id: string) => request<any[]>(`hiringManagers/${id}/shortlisted`),
+    getShortlistedCandidates: async (id: string) => request<any[]>(`hiringManagers/${id}/shortlisted`),
     getEvaluations: async (id: string) => request<any[]>(`hiringManagers/${id}/evaluations`),
     submitEvaluation: async (id: string, data: any) => request<any>(`hiringManagers/${id}/evaluations`, { method: "POST", body: JSON.stringify(data) }),
     getFeedback: async (id: string) => request<any[]>(`hiringManagers/${id}/feedback`),
