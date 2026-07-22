@@ -236,15 +236,13 @@ function InterviewCard({
 
       {!past && (
         <div className="flex items-center gap-3 flex-wrap">
-          {interview.meetingLink && (
-            <Button
-              className="bg-[#D4AF37] text-black font-semibold hover:bg-[#D4AF37]/90"
-              onClick={() => window.open(interview.meetingLink, "_blank")}
-            >
-              <Video className="mr-2 h-4 w-4" />
-              Join Interview
-            </Button>
-          )}
+          <Button
+            className="bg-[#D4AF37] text-black font-semibold hover:bg-[#D4AF37]/90"
+            onClick={() => interview.meetingLink ? window.open(interview.meetingLink, "_blank") : navigate("/interviews/video-room")}
+          >
+            <Video className="mr-2 h-4 w-4" />
+            Join Video Room
+          </Button>
           <AddToCalendarButton interview={interview} />
         </div>
       )}
