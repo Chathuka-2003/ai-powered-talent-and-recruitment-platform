@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { api } from "../api";
 import { Button } from "./ui/button";
 import { GlassCard } from "./GlassCard";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   LayoutDashboard,
   User,
@@ -104,7 +105,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
         } else if (data?.organizationName) {
           setCurrentUser(prev => ({ ...prev, company: data.organizationName }));
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }, [storedUser?.id, normalizedRole]);
 
@@ -118,6 +119,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
       { icon: Sparkles, label: "AI Recommendations", path: "/jobseeker/ai-recommendations" },
       { icon: Sparkles, label: "AI Suite", path: "/jobseeker/ai-suite" },
       { icon: Calendar, label: "Interviews", path: "/jobseeker/interviews" },
+      { icon: Video, label: "Video Room", path: "/interviews/video-room" },
       { icon: Calendar, label: "Calendar Integration", path: "/jobseeker/calendar" },
       { icon: MessageSquare, label: "Messages", path: "/jobseeker/messages", badge: unreadMessages > 0 ? unreadMessages : undefined },
       { icon: Bell, label: "Notifications", path: "/jobseeker/notifications", badge: unreadNotifications > 0 ? unreadNotifications : undefined },
@@ -253,6 +255,9 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
                 <Sparkles className="h-3.5 w-3.5" />
                 AI Tools
               </Button>
+              {/* Theme Toggle Button (Dark Gold vs LinkedIn Light Theme) */}
+              <ThemeToggle />
+
               {/* Notifications bell */}
               <Button
                 variant="ghost"
