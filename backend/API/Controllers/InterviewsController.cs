@@ -5,8 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 using API.Services;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class InterviewsController : ControllerBase
@@ -52,28 +55,42 @@ public class InterviewsController : ControllerBase
     [HttpGet("recruiter/{userId}")]
     public async Task<IActionResult> GetByRecruiterId(Guid userId)
     {
-        // Resolve the Recruiter entity from the UserId in the JWT token
-        var recruiter = await _context.Recruiters
-            .FirstOrDefaultAsync(r => r.UserId == userId);
+        var recruiter = await _context.Recruiters.FirstOrDefaultAsync(r => r.UserId == userId || r.Id == userId);
+        Guid? orgId = recruiter?.OrganizationId;
+        Guid? recruiterId = recruiter?.Id;
 
-        if (recruiter == null)
-            return Ok(new List<object>()); // Return empty rather than 404 for UX
+        if (orgId == null)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            orgId = user?.OrganizationId;
+        }
 
-        var interviews = await _context.Interviews
-            .Where(i => i.RecruiterId == recruiter.Id)
-            .Include(i => i.Candidate)
-                .ThenInclude(c => c.User)
-            .Include(i => i.Application)
-                .ThenInclude(a => a.Job)
+        var query = _context.Interviews
+            .Include(i => i.Candidate).ThenInclude(c => c.User)
+            .Include(i => i.Application).ThenInclude(a => a.Job)
+            .AsQueryable();
+
+        if (orgId != null)
+        {
+            query = query.Where(i => i.Application.Job.OrganizationId == orgId || (recruiterId != null && i.RecruiterId == recruiterId));
+        }
+        else if (recruiterId != null)
+        {
+            query = query.Where(i => i.RecruiterId == recruiterId);
+        }
+
+        var interviews = await query
             .OrderBy(i => i.InterviewDate)
             .Select(i => new
             {
                 i.Id,
-                CandidateName = i.Candidate.User.FirstName + " " + i.Candidate.User.LastName,
+                CandidateName = i.Candidate.User != null ? i.Candidate.User.FirstName + " " + i.Candidate.User.LastName : "Candidate",
                 CandidateTitle = i.Candidate.ProfessionalHeadline ?? "Candidate",
                 Position = i.Application.Job.Title,
                 Date = i.InterviewDate.ToString("MMMM dd, yyyy"),
+                InterviewDate = i.InterviewDate.ToString("yyyy-MM-DD"),
                 Time = i.InterviewTime.ToString(@"hh\:mm"),
+                InterviewTime = i.InterviewTime.ToString(@"hh\:mm"),
                 Type = i.Type,
                 Status = i.Status,
                 VideoLink = !string.IsNullOrEmpty(i.MeetingLink),
