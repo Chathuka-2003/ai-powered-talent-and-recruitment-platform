@@ -26,4 +26,4 @@ jobs:
         environment_name: TalentAI-Backend-env
         version_label: "v-${{ github.run_number }}"
         region: ap-south-1
-        deployment_package: api-deploy.zip
+        deployment_package: backend/api-deploy.zip
