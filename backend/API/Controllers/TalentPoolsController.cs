@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize(Roles = "recruiter,hiring-manager,admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class TalentPoolsController : ControllerBase
