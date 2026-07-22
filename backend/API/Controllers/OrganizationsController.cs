@@ -4,12 +4,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 /// <summary>
 /// Controller responsible for managing organization-related operations,
 /// including organization details, recruiters, and hiring managers.
 /// </summary>
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class OrganizationsController : ControllerBase
