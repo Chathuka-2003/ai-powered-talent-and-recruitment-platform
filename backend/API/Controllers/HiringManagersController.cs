@@ -4,8 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize(Roles = "recruiter,hiring-manager,admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class HiringManagersController : ControllerBase
@@ -265,8 +268,28 @@ public class HiringManagersController : ControllerBase
             .Include(h => h.User)
             .Include(h => h.Organization)
             .FirstOrDefaultAsync(h => h.UserId == id || h.Id == id);
-            
-        if (hm == null) return NotFound(new { message = "Hiring Manager not found." });
+
+        if (hm == null)
+        {
+            var user = await _context.Users
+                .Include(u => u.Organization)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null) return NotFound(new { message = "Hiring Manager not found." });
+
+            return Ok(new
+            {
+                Id = user.Id,
+                UserId = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.PhoneNumber,
+                OrganizationName = user.Organization?.Name,
+                Department = "Management",
+                Designation = "Hiring Manager"
+            });
+        }
 
         return Ok(new
         {
