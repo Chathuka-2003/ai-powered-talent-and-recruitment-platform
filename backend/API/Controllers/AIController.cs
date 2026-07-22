@@ -5,8 +5,11 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AIController : ControllerBase
