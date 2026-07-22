@@ -3,8 +3,11 @@ using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize(Roles = "jobseeker")]
 [ApiController]
 [Route("api/[controller]")]
 public class SavedJobsController : ControllerBase
