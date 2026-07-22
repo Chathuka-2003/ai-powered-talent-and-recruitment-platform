@@ -3,8 +3,11 @@ using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API.Controllers;
 
+[Authorize(Roles = "recruiter,hiring-manager,admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class RecruitersController : ControllerBase
@@ -22,9 +25,40 @@ public class RecruitersController : ControllerBase
         var recruiter = await _context.Recruiters
             .Include(r => r.Organization)
             .Include(r => r.User)
-            .FirstOrDefaultAsync(r => r.UserId == userId);
+            .FirstOrDefaultAsync(r => r.UserId == userId || r.Id == userId);
 
-        if (recruiter == null) return NotFound(new { message = "Recruiter profile not found." });
+        if (recruiter == null)
+        {
+            var user = await _context.Users
+                .Include(u => u.Organization)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) return NotFound(new { message = "Recruiter profile not found." });
+
+            return Ok(new
+            {
+                Id = user.Id,
+                UserId = user.Id,
+                OrganizationId = user.OrganizationId,
+                JobTitle = "Recruiter",
+                Department = "Recruitment",
+                PhoneNumber = user.PhoneNumber,
+                Organization = user.Organization != null ? new
+                {
+                    Id = user.Organization.Id,
+                    Name = user.Organization.Name,
+                    Website = user.Organization.Website,
+                    Address = user.Organization.Address,
+                    Description = user.Organization.Description
+                } : null,
+                User = new
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email
+                }
+            });
+        }
 
         return Ok(new
         {
@@ -63,6 +97,7 @@ public class RecruitersController : ControllerBase
     }
 
     [HttpPut("profile/{userId}")]
+    [Authorize(Roles = "recruiter,admin")]
     public async Task<IActionResult> UpdateProfile(Guid userId, [FromBody] UpdateProfileDto dto)
     {
         var recruiter = await _context.Recruiters
