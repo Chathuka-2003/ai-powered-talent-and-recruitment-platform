@@ -1,5 +1,5 @@
-export const API_BASE_URL = "http://talentai-backend-env.eba-25mgmefx.ap-south-1.elasticbeanstalk.com/api";
-export const BACKEND_URL = "http://talentai-backend-env.eba-25mgmefx.ap-south-1.elasticbeanstalk.com";
+export const API_BASE_URL = "https://d3lvdyd06b2wa4.cloudfront.net/api";
+export const BACKEND_URL = "https://d3lvdyd06b2wa4.cloudfront.net";
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}/${endpoint}`;
