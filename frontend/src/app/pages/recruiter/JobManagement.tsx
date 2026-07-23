@@ -74,7 +74,7 @@ export function JobManagement() {
     e.preventDefault();
     try {
       const user = JSON.parse(localStorage.getItem('talentai.user') || '{}');
-      const dto = {
+      const dto: any = {
         ...newJob,
         recruiterId: user.id
       };
