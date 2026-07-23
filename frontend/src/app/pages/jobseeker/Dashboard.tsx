@@ -19,6 +19,7 @@ import {
   Sparkles,
   Award,
   BookOpen,
+  Video,
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
