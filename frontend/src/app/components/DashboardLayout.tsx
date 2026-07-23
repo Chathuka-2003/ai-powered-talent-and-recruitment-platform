@@ -290,7 +290,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
                 >
                   <Avatar className="h-8 w-8 border border-[#D4AF37]/30">
                     <AvatarFallback className="bg-[#D4AF37]/10 text-[#D4AF37] font-semibold">
-                      {currentUser.name.split(" ").map((n) => n[0]).join("")}
+                      {currentUser.name.split(" ").map((n: string) => n[0]).join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:flex flex-col items-start">
