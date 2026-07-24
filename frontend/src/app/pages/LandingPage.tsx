@@ -254,7 +254,7 @@ export function LandingPage() {
               <div className="relative rounded-3xl overflow-hidden border border-white/15 shadow-2xl shadow-[#D4AF37]/15 group bg-secondary/40 backdrop-blur-2xl p-3">
                 <div className="relative rounded-2xl overflow-hidden">
                   <img
-                    src="https://talentlinkservices.com/wp-content/uploads/2025/12/employment-opportunity-hiring-jobs-icon_53876-122512.jpg"
+                    src="https://static.wixstatic.com/media/a38016_f1a0351c757240998e0fd8a3a8c10f1b.jpg/v1/fill/w_640,h_538,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/a38016_f1a0351c757240998e0fd8a3a8c10f1b.jpg"
                     alt="Employment Opportunities & Hiring Platform"
                     className="w-full h-80 sm:h-96 object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-95 contrast-105"
                   />
