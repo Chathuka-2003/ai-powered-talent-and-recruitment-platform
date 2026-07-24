@@ -182,6 +182,10 @@ Once running, Swagger UI is available at:
 
 ---
 
-## 📄 License
 
-This project is licensed under the MIT License.
+## 👥 Contributors
+Developed by NSBM Software Architecture Engineering Group:
+* **E M C P Edirisinghe (37208)** - Lead Backend & AI Integration (Recruiter Workflows, AWS)
+* **R W A K H Rajasekara (37204)** - System Architecture & Security (HM Dashboard, JWT RBAC)
+* **D M S Kenulya (36414)** - Governance & Notification Systems (Admin Dashboard, SignalR)
+* **W A K C Kaushalya (36467)** - File Management & Public Interfaces (Job Seeker Dashboard)
